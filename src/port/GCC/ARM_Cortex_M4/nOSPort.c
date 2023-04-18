@@ -192,7 +192,7 @@ void PendSV_Handler (void)
     );
 
 #if (NOS_CONFIG_THREAD_MPU_REGION_ENABLE > 0)
-        nOS_SetMPU_Regions(nOS_highPrioThread->MPU_Table);
+        nOS_SetMPU_Regions(nOS_runningThread->MPU_Table);
 #endif
 
     __asm volatile (
@@ -216,7 +216,7 @@ void MemManage_Handler (void)
     // basic MPU functionality.
     if(nOS_highPrioThread->MPU_Table->callback != NULL)
     {
-        generateHardFault = nOS_highPrioThread->MPU_Table->callback();
+        nOS_runningThread = nOS_runningThread->MPU_Table->callback();
     }
 
 	/*
