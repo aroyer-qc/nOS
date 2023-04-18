@@ -214,6 +214,12 @@ typedef struct nOS_Barrier          nOS_Barrier;
  #error "nOSConfig.h: NOS_CONFIG_THREAD_JOIN_ENABLE is set to invalid value: must be set to 0 or 1."
 #endif
 
+#ifndef NOS_CONFIG_THREAD_MPU_REGION_ENABLE
+ #error "nOSConfig.h: NOS_CONFIG_THREAD_MPU_REGION_ENABLE is not defined: must be set to 0 or 1."
+#elif (NOS_CONFIG_THREAD_MPU_REGION_ENABLE != 0) && (NOS_CONFIG_THREAD_MPU_REGION_ENABLE != 1)
+ #error "nOSConfig.h: NOS_CONFIG_THREAD_MPU_REGION_ENABLE is set to invalid value: must be set to 0 or 1."
+#endif
+
 #ifndef NOS_CONFIG_WAITING_TIMEOUT_ENABLE
  #error "nOSConfig.h: NOS_CONFIG_WAITING_TIMEOUT_ENABLE is not defined: must be set to 0 or 1."
 #elif (NOS_CONFIG_WAITING_TIMEOUT_ENABLE != 0) && (NOS_CONFIG_WAITING_TIMEOUT_ENABLE != 1)
@@ -863,6 +869,9 @@ struct nOS_Thread
 #if (NOS_CONFIG_THREAD_SUSPEND_ALL_ENABLE > 0)
     nOS_Node            node;
 #endif
+#if (NOS_CONFIG_THREAD_MPU_REGION_ENABLE > 0)
+    nOS_MPU_ProcessTbl* MPU_Table;
+#endif
 };
 
 #if (NOS_CONFIG_SEM_ENABLE > 0)
@@ -1415,6 +1424,9 @@ nOS_Error           nOS_ThreadCreate                    (nOS_Thread *thread,
 #endif
 #if (NOS_CONFIG_THREAD_SUSPEND_ENABLE > 0)
                                                         ,nOS_ThreadState state
+#endif
+#if (NOS_CONFIG_THREAD_MPU_REGION_ENABLE > 0)
+                                                        ,nOS_MPU_ProcessTbl *MPU_ProcessTable
 #endif
 #if (NOS_CONFIG_THREAD_NAME_ENABLE > 0)
                                                         ,const char *name

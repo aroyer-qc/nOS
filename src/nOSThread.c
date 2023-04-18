@@ -151,6 +151,9 @@ nOS_Error nOS_ThreadCreate (nOS_Thread *thread,
 #if (NOS_CONFIG_THREAD_SUSPEND_ENABLE > 0)
                            ,nOS_ThreadState state
 #endif
+#if(NOS_CONFIG_THREAD_MPU_REGION_ENABLE > 0)
+                           ,nOS_MPU_ProcessTbl *MPU_ProcessTable
+#endif
 #if (NOS_CONFIG_THREAD_NAME_ENABLE > 0)
                            ,const char *name
 #endif

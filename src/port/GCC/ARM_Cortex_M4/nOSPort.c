@@ -186,17 +186,28 @@ void PendSV_Handler (void)
         /* Restore PSP to high prio thread stack */
         "MSR        PSP,        R0                  \n"
 
-        /* Enable interrupts */
+        ".align 2                                   \n"
+        "runningThread: .word nOS_runningThread     \n"
+        "highPrioThread: .word nOS_highPrioThread   \n"
+    );
+
+#if (NOS_CONFIG_THREAD_MPU_REGION_ENABLE > 0)
+        nOS_SetMPU_Regions(nOS_highPrioThread->MPU_Table);
+#endif
+
+    __asm volatile (
+         /* Enable interrupts */
         "CPSIE      I                               \n"
         "ISB                                        \n"
 
         /* Return */
         "BX         LR                              \n"
-
-        ".align 2                                   \n"
-        "runningThread: .word nOS_runningThread     \n"
-        "highPrioThread: .word nOS_highPrioThread   \n"
     );
+}
+
+void MemManage_Handler (void)
+{
+
 }
 
 #ifdef __cplusplus

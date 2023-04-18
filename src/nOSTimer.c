@@ -229,6 +229,9 @@ void nOS_InitTimer(void)
   #if (NOS_CONFIG_THREAD_SUSPEND_ENABLE > 0)
                     ,NOS_THREAD_READY
   #endif
+  #if(NOS_CONFIG_THREAD_MPU_REGION_ENABLE > 0)
+                    , NULL
+  #endif
   #if (NOS_CONFIG_THREAD_NAME_ENABLE > 0)
                     ,"nOS_Timer"
   #endif

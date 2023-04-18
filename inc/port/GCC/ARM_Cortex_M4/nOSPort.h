@@ -16,6 +16,20 @@ extern "C" {
 typedef uint32_t                            nOS_Stack;
 typedef uint32_t                            nOS_StatusReg;
 
+typedef struct
+{
+    uint32_t RBAR;   // Region base address
+    uint32_t RASR;   // Region attributes (type, region size, enable, etc.)
+} nOS_MPU_Region;
+
+typedef void (*faultCallback)();
+
+typedef struct
+{
+    nOS_MPU_Region    MPU_Table[8][2];          // RBAR and RASR entries
+    faultCallback     *callback;                // NULL pointer if no callback
+} nOS_MPU_ProcessTbl;
+
 #define NOS_UNUSED(v)                       (void)v
 
 #define NOS_MEM_ALIGNMENT                   4
@@ -144,6 +158,60 @@ __attribute__( ( always_inline ) ) static inline uint32_t _CLZ(uint32_t n)
     return r;
 }
 
+__attribute__( ( always_inline ) ) static inline void nOS_SetMPU_Regions (nOS_MPU_ProcessTbl* pTableRegion)
+{
+    // Only change privileged if task is not privileged
+    if(pTableRegion != NULL)
+    {
+        __asm volatile (
+            "PUSH   {R4-R12}                        \n"
+            /* MPU->RBAR */
+
+            "LDR    R4,         =0xE000ED9C         \n"
+            /* Make sure outstanding transfers are done */
+            "DMB    0x0F                            \n"
+            /* Disable the MPU */
+            "MOVS   R5,         #0                  \n"
+            "STR    R5,         [R4,#-8]            \n"
+
+        /* Update the first 8 MPU (v7M and V8M) */
+            /* Read 8 words from the process table */
+            "LDMIA %0!,         {R5-R12}            \n"
+            //"LDMIA  %0!,        {R2-R9}             \n"
+            /* Write 8 words to the MPU */
+            "STMIA  R4,         {R5-R12}            \n"
+            /* Read the next 8 words from the process table */
+            "LDMIA  %0!,        {R5-R12}            \n"
+            /* Write those 8 words to the MPU */
+            "STMIA  R4,         {R5-R12}            \n"
+
+        /* Write the next 8 MPU regions (v8M only) */
+            /* Read 8 words from the process table */
+            "LDMIA  %0!,        {R5-R12}            \n"
+            /* Write 8 words to the MPU */
+            "STMIA  R4,         {R5-R12}            \n"
+            /* Read the next 8 words from the process table */
+            "LDMIA  %0!,        {R5-R12}            \n"
+            /* Write those 8 words to the MPU */
+            "STMIA  R4,         {R5-R12}            \n"
+
+            /* Memory barriers to ensure subsequent data + instruction */
+            "DSB    0x0F                            \n"
+            /* Transfer using updated MPU settings */
+            "ISB    0x0F                            \n"
+            /* Enable the MPU (assumes PRIVDEFENA is 1) */
+            "MOVS   R5,         #5                  \n"
+            "STR    R5,         [R4, #-8]           \n"
+
+            "POP    {R4-R12}                        \n"
+            "BX     LR                              \n"
+
+            ".align 4                               \n"
+            :: "r" (pTableRegion)
+        );
+    }
+}
+
 #ifdef NOS_MAX_UNSAFE_BASEPRI
 #define nOS_EnterCritical(sr)                                                   \
     do {                                                                        \
@@ -221,6 +289,7 @@ inline void func##_ISR(void)
  void       nOS_InitSpecific        (void);
  void       nOS_InitContext         (nOS_Thread *thread, nOS_Stack *stack, size_t ssize, nOS_ThreadEntry entry, void *arg);
  void       nOS_SwitchContext       (void);
+ void       nOS_SetMPU_Regions      (nOS_MPU_ProcessTbl *MPU_ProcessTable);
 #endif
 
 #ifdef __cplusplus
