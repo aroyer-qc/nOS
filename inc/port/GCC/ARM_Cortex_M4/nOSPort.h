@@ -22,12 +22,12 @@ typedef struct
     uint32_t RASR;   // Region attributes (type, region size, enable, etc.)
 } nOS_MPU_Region;
 
-typedef void (*faultCallback)();
+typedef bool (*faultCallback)();
 
 typedef struct
 {
     nOS_MPU_Region    MPU_Table[8][2];          // RBAR and RASR entries
-    faultCallback     *callback;                // NULL pointer if no callback
+    faultCallback     callback;                // NULL pointer if no callback
 } nOS_MPU_ProcessTbl;
 
 #define NOS_UNUSED(v)                       (void)v

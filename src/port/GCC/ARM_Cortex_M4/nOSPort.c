@@ -205,10 +205,36 @@ void PendSV_Handler (void)
     );
 }
 
+#if (NOS_CONFIG_THREAD_MPU_REGION_ENABLE > 0)
 void MemManage_Handler (void)
 {
+    bool generateHardFault = true;
 
+    // Process any custom recovery method. as per Jean Labrosse
+    // in his article "Using a memory protection unit with an RTOS"
+    // this is up to the user to develop their strategy, nOS only provide
+    // basic MPU functionality.
+    if(nOS_highPrioThread->MPU_Table->callback != NULL)
+    {
+        generateHardFault = nOS_highPrioThread->MPU_Table->callback();
+    }
+
+	/*
+	 * Get the appropriate stack pointer, depending on our mode,
+	 * and use it as the parameter to the C handler. This function
+	 * will never return
+	 */
+	if(generateHardFault == true)
+    {
+        __asm( 	"TST lr, #4 			\r\n"
+                "ITE EQ 				\r\n"
+                "MRSEQ r0, MSP 			\r\n"
+                "MRSNE r0, PSP 			\r\n"
+                "B HardFault_Handler 	\r\n"
+                );
+    }
 }
+#endif
 
 #ifdef __cplusplus
 }
