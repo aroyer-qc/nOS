@@ -247,6 +247,9 @@ nOS_Error nOS_ThreadCreate (nOS_Thread *thread,
 #endif
             }
 
+#if (NOS_CONFIG_THREAD_CREATE_HOOK > 0)
+            nOS_ThreadCreateHook(thread, ssize);
+#endif
             err = NOS_OK;
         }
         nOS_LeaveCritical(sr);
@@ -308,7 +311,6 @@ nOS_Error nOS_ThreadDelete (nOS_Thread *thread)
             thread->timeout = 0;
 #endif
             thread->error   = (int)NOS_E_DELETED;
-
             err = NOS_OK;
         }
         nOS_LeaveCritical(sr);
