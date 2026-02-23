@@ -85,7 +85,7 @@ void nOS_WakeUpThread (nOS_Thread *thread, nOS_Error err)
     thread->error = (int)err;
     thread->state = (nOS_ThreadState)(thread->state &~ NOS_THREAD_WAITING_MASK);
 #if (NOS_CONFIG_THREAD_HOOK > 0)
-            nOS_ThreadHook(thread, (size_t)0);
+            nOS_ThreadHook(thread, 0);
 #endif
 #if (NOS_CONFIG_WAITING_TIMEOUT_ENABLE > 0) || (NOS_CONFIG_SLEEP_ENABLE > 0) || (NOS_CONFIG_SLEEP_UNTIL_ENABLE > 0)
     if (thread->state & NOS_THREAD_WAIT_TIMEOUT) {
@@ -327,7 +327,6 @@ nOS_Error nOS_ThreadDelete (nOS_Thread *thread)
             thread->timeout = 0;
 #endif
             thread->error   = (int)NOS_E_DELETED;
-
 #if (NOS_CONFIG_THREAD_HOOK > 0)
             nOS_ThreadHook(thread, 0);
 #endif
