@@ -13,6 +13,8 @@
 extern "C" {
 #endif
 
+void nOS_ThreadHook(nOS_Thread* thread, size_t ssize);
+
 #if (NOS_CONFIG_THREAD_SUSPEND_ENABLE > 0)
 static void _SuspendThread (void *payload, void *arg)
 {
@@ -28,6 +30,10 @@ static void _SuspendThread (void *payload, void *arg)
             if (thread->state == NOS_THREAD_READY) {
                 nOS_RemoveThreadFromReadyList(thread);
             }
+
+#if (NOS_CONFIG_THREAD_HOOK > 0)
+            nOS_ThreadHook(thread, 0);
+#endif
             thread->state = (nOS_ThreadState)(thread->state | NOS_THREAD_SUSPENDED);
         }
     }
@@ -41,6 +47,9 @@ static void _ResumeThread (void *payload, void *arg)
 
     if (thread->state & NOS_THREAD_SUSPENDED) {
         thread->state = (nOS_ThreadState)(thread->state &~ NOS_THREAD_SUSPENDED);
+#if (NOS_CONFIG_THREAD_HOOK > 0)
+            nOS_ThreadHook(thread, 0);
+#endif
         if (thread->state == NOS_THREAD_READY) {
             nOS_AppendThreadToReadyList(thread);
         }
@@ -75,6 +84,9 @@ void nOS_WakeUpThread (nOS_Thread *thread, nOS_Error err)
     }
     thread->error = (int)err;
     thread->state = (nOS_ThreadState)(thread->state &~ NOS_THREAD_WAITING_MASK);
+#if (NOS_CONFIG_THREAD_HOOK > 0)
+            nOS_ThreadHook(thread, (size_t)0);
+#endif
 #if (NOS_CONFIG_WAITING_TIMEOUT_ENABLE > 0) || (NOS_CONFIG_SLEEP_ENABLE > 0) || (NOS_CONFIG_SLEEP_UNTIL_ENABLE > 0)
     if (thread->state & NOS_THREAD_WAIT_TIMEOUT) {
         thread->state = (nOS_ThreadState)(thread->state &~ NOS_THREAD_WAIT_TIMEOUT);
@@ -99,6 +111,10 @@ int nOS_ThreadWrapper (void *arg)
     nOS_EnterCritical(sr);
     nOS_runningThread->error = ret;
     nOS_runningThread->state = NOS_THREAD_FINISHED;
+#if (NOS_CONFIG_THREAD_HOOK > 0)
+            nOS_ThreadHook(thread, 0);
+#endif
+
     do {
         thread = nOS_SendEvent((nOS_Event*)&nOS_runningThread->joined, NOS_OK);
         if (thread != NULL) {
@@ -247,8 +263,8 @@ nOS_Error nOS_ThreadCreate (nOS_Thread *thread,
 #endif
             }
 
-#if (NOS_CONFIG_THREAD_CREATE_HOOK > 0)
-            nOS_ThreadCreateHook(thread, ssize);
+#if (NOS_CONFIG_THREAD_HOOK > 0)
+            nOS_ThreadHook(thread, ssize);
 #endif
             err = NOS_OK;
         }
@@ -311,6 +327,11 @@ nOS_Error nOS_ThreadDelete (nOS_Thread *thread)
             thread->timeout = 0;
 #endif
             thread->error   = (int)NOS_E_DELETED;
+
+#if (NOS_CONFIG_THREAD_HOOK > 0)
+            nOS_ThreadHook(thread, 0);
+#endif
+
             err = NOS_OK;
         }
         nOS_LeaveCritical(sr);
@@ -657,6 +678,12 @@ nOS_Error nOS_ThreadJoin (nOS_Thread *thread, int *ret, nOS_TickCounter timeout)
     return err;
 }
 #endif  /* NOS_CONFIG_THREAD_JOIN_ENABLE */
+
+#if (NOS_CONFIG_THREAD_HOOK > 0)
+__attribute__((weak)) void nOS_ThreadHook(nOS_Thread* thread, size_t ssize)
+{
+}
+#endif
 
 #ifdef __cplusplus
 }
